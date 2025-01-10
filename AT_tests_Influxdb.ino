@@ -1,28 +1,30 @@
 #include <SoftwareSerial.h>
+String myToken = "SGeozmBcVvWF4K7SQXQ6oAWnymZo1NXBIPy3pgSX9G3c4o3ZedHdoL7l_XZh-z-96CEdm-O4L2M-zE5sdB4bhA==";
+String myHost = "https://eu-central-1-1.aws.cloud2.influxdata.com";
+String myOrg = "b806d7e07da0b5e0";
 
-int i;
+String myDebit = "4.3521";
+int taille = 0;
+
 SoftwareSerial mySerial(8,9);
-float debit = 2.6;
-
-
-String Apikey = "U6P6V3B14YDZEPOS";
 
 void setup()
 {
   mySerial.begin(115200);   // Setting the baud rate of 4G LTE Module  
   Serial.begin(115200);    // Setting the baud rate of Serial Monitor (Arduino)
   delay(1000);
-  String http_str = "AT+HTTPPARA=\"URL\",\"https://api.thingspeak.com/update?api_key=" + Apikey + "&field1=" + String(debit) + "\"";
+  //String http_str = "AT+HTTPPARA=\"URL\",\"https://api.thingspeak.com/update?api_key=" + Apikey + "&field1=" + String(debit) + "\"";
     sendATCommand("AT",1000);
     sendATCommand("AT+HTTPINIT",1000);
-    sendATCommand("AT+HTTPPARA=\"CONTENT\",\"application/x-www-form-urlencoded\"",1000);  
-    sendATCommand(http_str,3000); //merci d'optimiser les timeouts.
-    sendATCommand("AT+HTTPACTION=0",2000);
+    sendATCommand("AT+HTTPPARA=\"URL\",\"" + myHost + "/api/v2/write?org=" + myOrg + "&bucket=debitmetre&precision=s\"",1000);
+    sendATCommand("AT+HTTPPARA=\"USERDATA\",\"Authorization:Token " + myToken + "\"",1000);
+    sendATCommand("AT+HTTPPARA=\"CONTENT\",\"text/plain; charset=utf-8\"",1000);
+    taille = myDebit.length() + 33;
+    sendATCommand("AT+HTTPDATA=" + String(taille) + ",1000",1000); // là il faut la taille exacte
+    sendATCommand("debit,client=KOB,unit=m3/h debit=" + myDebit,1000);
+    sendATCommand("AT+HTTPACTION=1",3000); 
     sendATCommand("AT+HTTPTERM",1000);
-
-
 }
-
 
 void loop()
 {
