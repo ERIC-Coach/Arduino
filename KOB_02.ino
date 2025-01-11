@@ -60,8 +60,8 @@
 
   void loop()
   {
-    rs485Serial.listen();
-    if (rs485Serial.isListening()){
+    if (! rs485Serial.isListening()){
+      rs485Serial.listen();
       Serial.println("Ecoute rs485Serial");
     }
     if (rs485Serial.available() > 0) 
@@ -70,29 +70,33 @@
         Serial.println(ReceivedData);  // Attendu FLOW: 3.4567 m3/h
         int twopoint = ReceivedData.indexOf(':');
         int mletter = ReceivedData.indexOf('m'); // remplacer par l si on passe le débitmètre en l/s
-        sdebit =ReceivedData.substring(twopoint+2,mletter-1);
+        sdebit = ReceivedData.substring(twopoint+2,mletter-1);
         debit = sdebit.toFloat(); // ne garde que 2 décimales
+        Serial.println(sdebit);
+        //
+        if ((debit != savdebit) || (debit > 0.0)) // on envoie si le débit est différent du précédent envoyé/ ou > 0
+        {
+            c4GSerial.listen();
+            savdebit = debit; 
+            digitalWrite(RLED, HIGH);
+            sendATCommand("AT",1000);
+            sendATCommand("AT+HTTPINIT",1000);
+            sendATCommand("AT+HTTPPARA=\"URL\",\"" + myHost + "/api/v2/write?org=" + myOrg + "&bucket=debitmetre&precision=s\"",1000);
+            sendATCommand("AT+HTTPPARA=\"USERDATA\",\"Authorization:Token " + myToken + "\"",1000);
+            sendATCommand("AT+HTTPPARA=\"CONTENT\",\"text/plain; charset=utf-8\"",1000);
+            taille = sdebit.length() + 33;
+            sendATCommand("AT+HTTPDATA=" + String(taille) + ",1000",1000); // là il faut la taille exacte
+            sendATCommand("debit,client=KOB,unit=m3/h debit=" + sdebit,1000);
+            digitalWrite(RLED, LOW);
+            sendATCommand("AT+HTTPACTION=1",8000); 
+            sendATCommand("AT+HTTPTERM",1000);
+        }
+    } else {
+      Serial.println("Rien de nouveau à lire sur rs485Serial");
     }
-    Serial.println(sdebit);
-    if ((debit != savdebit)||(debit > 0.0)) // on envoie si le débit est différent du précédent envoyé/ ou > 0
-    {
-        c4GSerial.listen();
-        savdebit = debit; 
-        digitalWrite(RLED, HIGH);
-        sendATCommand("AT",1000);
-        sendATCommand("AT+HTTPINIT",1000);
-        sendATCommand("AT+HTTPPARA=\"URL\",\"" + myHost + "/api/v2/write?org=" + myOrg + "&bucket=debitmetre&precision=s\"",1000);
-        sendATCommand("AT+HTTPPARA=\"USERDATA\",\"Authorization:Token " + myToken + "\"",1000);
-        sendATCommand("AT+HTTPPARA=\"CONTENT\",\"text/plain; charset=utf-8\"",1000);
-        taille = sdebit.length() + 33;
-        sendATCommand("AT+HTTPDATA=" + String(taille) + ",1000",1000); // là il faut la taille exacte
-        sendATCommand("debit,client=KOB,unit=m3/h debit=" + sdebit,1000);
-        digitalWrite(RLED, LOW);
-        sendATCommand("AT+HTTPACTION=1",8000); 
-        sendATCommand("AT+HTTPTERM",1000);
-    }
-    delay(500); 
+      delay(500); 
   }
+  
 
 
 String sendATCommand(String cmd, const int timeout) {
