@@ -77,13 +77,18 @@
         if ((debit != savdebit) || (debit > 0.0)) // on envoie si le débit est différent du précédent envoyé/ ou > 0
         {
             c4GSerial.listen();
-            savdebit = debit; 
             digitalWrite(RLED, HIGH);
             sendATCommand("AT",1000);
             sendATCommand("AT+HTTPINIT",1000);
             sendATCommand("AT+HTTPPARA=\"URL\",\"" + myHost + "/api/v2/write?org=" + myOrg + "&bucket=debitmetre&precision=s\"",1000);
             sendATCommand("AT+HTTPPARA=\"USERDATA\",\"Authorization:Token " + myToken + "\"",1000);
             sendATCommand("AT+HTTPPARA=\"CONTENT\",\"text/plain; charset=utf-8\"",1000);
+            if (savdebit == 0)
+            {
+                sendATCommand("debit,client=KOB,unit=m3/h debit=0",1000); // on poste un 0 juste avant les débits positifs pour permettre un calcul précis des intégrales
+                sendATCommand("AT+HTTPACTION=1",8000); 
+            }
+            savdebit = debit; 
             taille = sdebit.length() + 33;
             sendATCommand("AT+HTTPDATA=" + String(taille) + ",1000",1000); // là il faut la taille exacte
             sendATCommand("debit,client=KOB,unit=m3/h debit=" + sdebit,1000);
@@ -113,4 +118,3 @@ String sendATCommand(String cmd, const int timeout) {
   Serial.println(response);
   return response;
 }
-
