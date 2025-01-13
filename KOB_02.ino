@@ -76,25 +76,11 @@
         //
         if ((debit != savdebit) || (debit > 0.0)) // on envoie si le débit est différent du précédent envoyé/ ou > 0
         {
-            c4GSerial.listen();
-            digitalWrite(RLED, HIGH);
-            sendATCommand("AT",1000);
-            sendATCommand("AT+HTTPINIT",1000);
-            sendATCommand("AT+HTTPPARA=\"URL\",\"" + myHost + "/api/v2/write?org=" + myOrg + "&bucket=debitmetre&precision=s\"",1000);
-            sendATCommand("AT+HTTPPARA=\"USERDATA\",\"Authorization:Token " + myToken + "\"",1000);
-            sendATCommand("AT+HTTPPARA=\"CONTENT\",\"text/plain; charset=utf-8\"",1000);
-            if (savdebit == 0)
-            {
-                sendATCommand("debit,client=KOB,unit=m3/h debit=0",1000); // on poste un 0 juste avant les débits positifs pour permettre un calcul précis des intégrales
-                sendATCommand("AT+HTTPACTION=1",8000); 
-            }
-            savdebit = debit; 
-            taille = sdebit.length() + 33;
-            sendATCommand("AT+HTTPDATA=" + String(taille) + ",1000",1000); // là il faut la taille exacte
-            sendATCommand("debit,client=KOB,unit=m3/h debit=" + sdebit,1000);
-            digitalWrite(RLED, LOW);
-            sendATCommand("AT+HTTPACTION=1",8000); 
-            sendATCommand("AT+HTTPTERM",1000);
+          if (savdebit == 0)
+          {
+            sendInfluxDataPoint("0"); // on poste un 0 juste avant les débits positifs pour permettre un calcul précis des intégrales
+          }
+          sendInfluxDataPoint(sdebit); // on envoie le point de débit dans Influx
         }
     } else {
       Serial.println("Rien de nouveau à lire sur rs485Serial");
@@ -103,6 +89,23 @@
   }
   
 
+void sendInfluxDataPoint(String sdebit){
+  savdebit = debit; 
+  taille = sdebit.length() + 33;
+  c4GSerial.listen();
+  digitalWrite(RLED, HIGH);
+  sendATCommand("AT",1000);
+  sendATCommand("AT+HTTPINIT",1000);
+  sendATCommand("AT+HTTPPARA=\"URL\",\"" + myHost + "/api/v2/write?org=" + myOrg + "&bucket=debitmetre&precision=s\"",1000);
+  sendATCommand("AT+HTTPPARA=\"USERDATA\",\"Authorization:Token " + myToken + "\"",1000);
+  sendATCommand("AT+HTTPPARA=\"CONTENT\",\"text/plain; charset=utf-8\"",1000);
+  sendATCommand("AT+HTTPDATA=" + String(taille) + ",1000",1000); // là il faut indiquer la taille exacte du body text
+  sendATCommand("debit,client=KOB,unit=m3/h debit=" + sdebit,1000);
+  sendATCommand("AT+HTTPACTION=1",8000); 
+  sendATCommand("AT+HTTPTERM",1000);
+  digitalWrite(RLED, LOW);
+
+}
 
 String sendATCommand(String cmd, const int timeout) {
   Serial.println("sendATcommand :" + cmd);
