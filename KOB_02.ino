@@ -81,6 +81,7 @@
             sendInfluxDataPoint("0"); // on poste un 0 juste avant les débits positifs pour permettre un calcul précis des intégrales
           }
           sendInfluxDataPoint(sdebit); // on envoie le point de débit dans Influx
+          savdebit = debit;
         }
     } else {
       Serial.println("Rien de nouveau à lire sur rs485Serial");
@@ -90,7 +91,6 @@
   
 
 void sendInfluxDataPoint(String sdebit){
-  savdebit = debit; 
   taille = sdebit.length() + 33;
   c4GSerial.listen();
   digitalWrite(RLED, HIGH);
