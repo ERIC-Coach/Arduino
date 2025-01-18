@@ -72,11 +72,11 @@
         int mletter = ReceivedData.indexOf('m'); // remplacer par l si on passe le débitmètre en l/s
         sdebit = ReceivedData.substring(twopoint+2,mletter-1);
         debit = sdebit.toFloat(); // ne garde que 2 décimales
-        Serial.println(sdebit);
+        Serial.println("sdebit=" + sdebit);
         //
         if ((debit != savdebit) || (debit > 0.0)) // on envoie si le débit est différent du précédent envoyé/ ou > 0
         {
-          if (savdebit == 0)
+          if (savdebit == 0.0)
           {
             sendInfluxDataPoint("0"); // on poste un 0 juste avant les débits positifs pour permettre un calcul précis des intégrales
           }
@@ -86,7 +86,7 @@
     } else {
       Serial.println("Rien de nouveau à lire sur rs485Serial");
     }
-      delay(500); 
+      delay(1000); 
   }
   
 
