@@ -54,7 +54,8 @@
     pinMode(RLED, OUTPUT);
     digitalWrite(RLED, LOW);
 
-    delay(1000);      
+    delay(1000);
+    sendATCommand("AT",1000);
   }
 
 
@@ -94,17 +95,25 @@ void sendInfluxDataPoint(String sdebit){
   taille = sdebit.length() + 33;
   c4GSerial.listen();
   digitalWrite(RLED, HIGH);
-  sendATCommand("AT",1000);
   sendATCommand("AT+HTTPINIT",1000);
   sendATCommand("AT+HTTPPARA=\"URL\",\"" + myHost + "/api/v2/write?org=" + myOrg + "&bucket=debitmetre&precision=s\"",1000);
   sendATCommand("AT+HTTPPARA=\"USERDATA\",\"Authorization:Token " + myToken + "\"",1000);
   sendATCommand("AT+HTTPPARA=\"CONTENT\",\"text/plain; charset=utf-8\"",1000);
   sendATCommand("AT+HTTPDATA=" + String(taille) + ",1000",1000); // là il faut indiquer la taille exacte du body text
   sendATCommand("debit,client=KOB,unit=m3/h debit=" + sdebit,1000);
-  sendATCommand("AT+HTTPACTION=1",8000); 
+  String response = sendATCommand("AT+HTTPACTION=1",8000);
+  if (response.indexOf("204") == -1) { // Si le code de retour obtenu est différent de 204 on reset le module 4G (format attendu : "+HTTPACTION: 1,204,0")
+      Serial.println("ERREUR : on a  pas reçu de code 204!");
+      softReset4G();
+  }
   sendATCommand("AT+HTTPTERM",1000);
   digitalWrite(RLED, LOW);
 
+}
+
+void softReset4G(){
+  Serial.println("SOFT RESET DU MODULE 4G");
+  sendATCommand("AT+CFUN=1,1",1000);
 }
 
 String sendATCommand(String cmd, const int timeout) {
